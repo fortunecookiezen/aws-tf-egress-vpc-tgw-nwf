@@ -11,16 +11,20 @@ variable "enable_dns_support" {
 }
 
 variable "availability_zone_names" {
-  type    = list(string)
-  default = ["us-east-1a"]
+  description = "list of availability zones for subnet coverage, like us-east-1a, us-east-1b, etc. This module will create a set of three subnets (public, firewall, transit gateway) per availability zone"
+  type        = list(string)
+  default     = ["us-east-1a"]
 }
 
 variable "cidr" {
-  type = string
+  description = "cidr block for this vpc. It really doesn't need to be larger than /24."
+  type        = string
 }
 
 variable "home_net" {
-  type = string
+  description = "summary cidr block for all resources behind this egress vpc"
+  type        = string
+  default     = "10.0.0.0/8"
 }
 
 variable "name" {

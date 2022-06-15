@@ -30,8 +30,8 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_availability_zone_names"></a> [availability\_zone\_names](#input\_availability\_zone\_names) | n/a | `list(string)` | <pre>[<br>  "us-east-1a"<br>]</pre> | no |
-| <a name="input_cidr"></a> [cidr](#input\_cidr) | n/a | `string` | n/a | yes |
+| <a name="input_availability_zone_names"></a> [availability\_zone\_names](#input\_availability\_zone\_names) | list of availability zones for subnet coverage, like us-east-1a, us-east-1b, etc. This module will create a set of three subnets (public, firewall, transit gateway) per availability zone | `list(string)` | <pre>[<br>  "us-east-1a"<br>]</pre> | no |
+| <a name="input_cidr"></a> [cidr](#input\_cidr) | cidr block for this vpc. It really doesn't need to be larger than /24. | `string` | n/a | yes |
 | <a name="input_enable_dns_hostnames"></a> [enable\_dns\_hostnames](#input\_enable\_dns\_hostnames) | Should be true to enable DNS hostnames in the VPC | `bool` | `true` | no |
 | <a name="input_enable_dns_support"></a> [enable\_dns\_support](#input\_enable\_dns\_support) | Should be true to enable DNS support in the VPC | `bool` | `true` | no |
 | <a name="input_firewall_acl_tags"></a> [firewall\_acl\_tags](#input\_firewall\_acl\_tags) | Additional tags for the firewall subnets network ACL | `map(string)` | `{}` | no |
@@ -39,7 +39,7 @@ No modules.
 | <a name="input_firewall_subnet_suffix"></a> [firewall\_subnet\_suffix](#input\_firewall\_subnet\_suffix) | Suffix to append to firewall subnet name | `string` | `"nwf"` | no |
 | <a name="input_firewall_subnet_tags"></a> [firewall\_subnet\_tags](#input\_firewall\_subnet\_tags) | Additional tags for the firewall subnets | `map(string)` | `{}` | no |
 | <a name="input_firewall_subnets"></a> [firewall\_subnets](#input\_firewall\_subnets) | A list of firewall subnet cidr blocks inside the VPC | `list(string)` | `[]` | no |
-| <a name="input_home_net"></a> [home\_net](#input\_home\_net) | n/a | `string` | n/a | yes |
+| <a name="input_home_net"></a> [home\_net](#input\_home\_net) | summary cidr block for all resources behind this egress vpc | `string` | `"10.0.0.0/8"` | no |
 | <a name="input_igw_tags"></a> [igw\_tags](#input\_igw\_tags) | Additional tags for the internet gateway | `map(string)` | `{}` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name to be used on all the resources as identifier | `string` | `"egress-vpc"` | no |
 | <a name="input_private_route_table_routes"></a> [private\_route\_table\_routes](#input\_private\_route\_table\_routes) | Configuration block of routes. See https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_route_table#route | `list(map(string))` | `[]` | no |
