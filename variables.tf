@@ -18,6 +18,7 @@ variable "availability_zone_names" {
 variable "cidr" {
   type = string
 }
+
 variable "home_net" {
   type = string
 }
@@ -28,19 +29,19 @@ variable "name" {
   default     = "egress-vpc"
 }
 variable "public_subnets" {
-  description = "A list of public subnets inside the VPC"
+  description = "A list of public subnet cidr blocks inside the VPC"
   type        = list(string)
   default     = []
 }
 
 variable "firewall_subnets" {
-  description = "A list of private subnets inside the VPC"
+  description = "A list of firewall subnet cidr blocks inside the VPC"
   type        = list(string)
   default     = []
 }
 
 variable "transit_gateway_subnets" {
-  description = "A list of non-routable subnets inside the VPC"
+  description = "A list of transit gateway attached subnet cidr blocks inside the VPC"
   type        = list(string)
   default     = []
 }
@@ -52,19 +53,19 @@ variable "private_route_table_routes" {
 }
 
 variable "public_subnet_suffix" {
-  description = "Suffix to append to public subnets name"
+  description = "Suffix to append to public subnet name"
   type        = string
   default     = "public"
 }
 
 variable "firewall_subnet_suffix" {
-  description = "Suffix to append to private subnets name"
+  description = "Suffix to append to firewall subnet name"
   type        = string
   default     = "nwf"
 }
 
 variable "transit_gateway_subnet_suffix" {
-  description = "Suffix to append to outpost subnets name"
+  description = "Suffix to append to transit gateway subnet name"
   type        = string
   default     = "tgw"
 }
@@ -84,19 +85,19 @@ variable "vpc_tags" {
 
 
 variable "public_route_table_tags" {
-  description = "Additional tags for the public route tables"
+  description = "Additional tags for the public subnet route tables"
   type        = map(string)
   default     = {}
 }
 
 variable "firewall_route_table_tags" {
-  description = "Additional tags for the private route tables"
+  description = "Additional tags for the firewall subnet route tables"
   type        = map(string)
   default     = {}
 }
 
 variable "transit_gateway_route_table_tags" {
-  description = "Additional tags for the isolated route tables"
+  description = "Additional tags for the transit gateway subnet route tables"
   type        = map(string)
   default     = {}
 }
@@ -108,13 +109,13 @@ variable "public_subnet_tags" {
 }
 
 variable "firewall_subnet_tags" {
-  description = "Additional tags for the private subnets"
+  description = "Additional tags for the firewall subnets"
   type        = map(string)
   default     = {}
 }
 
 variable "transit_gateway_subnet_tags" {
-  description = "Additional tags for the isolated subnets"
+  description = "Additional tags for the transit gateway subnets"
   type        = map(string)
   default     = {}
 }
@@ -132,13 +133,13 @@ variable "public_acl_tags" {
 }
 
 variable "firewall_acl_tags" {
-  description = "Additional tags for the private subnets network ACL"
+  description = "Additional tags for the firewall subnets network ACL"
   type        = map(string)
   default     = {}
 }
 
 variable "transit_gateway_acl_tags" {
-  description = "Additional tags for the isolated subnets network ACL"
+  description = "Additional tags for the transit gateway subnets network ACL"
   type        = map(string)
   default     = {}
 }
