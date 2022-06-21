@@ -12,6 +12,19 @@ Terraform code to create a central egress vpc using nat gateway and aws network 
 <!-- BEGIN_TF_DOCS -->
 
 
+## Usage
+```hcl
+module "egress_vpc" {
+  source                  = "../"
+  cidr                    = "10.1.1.0/24" # cidr shouldn't be bigger than /24
+  home_net                = "10.0.0.0/8"
+  public_subnets          = ["10.1.1.64/27", "10.1.1.96/27", "10.1.1.128/27", "10.1.1.160/27"]
+  firewall_subnets        = ["10.1.1.0/28", "10.1.1.16/28", "10.1.1.32/28", "10.1.1.48/28"]
+  transit_gateway_subnets = ["10.1.1.192/28", "10.1.1.208/28", "10.1.1.224/28", "10.1.1.240/28"]
+  availability_zone_names = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
+}
+```
+
 ## Requirements
 
 No requirements.
@@ -42,6 +55,8 @@ No modules.
 | <a name="input_home_net"></a> [home\_net](#input\_home\_net) | summary cidr block for all resources behind this egress vpc | `string` | `"10.0.0.0/8"` | no |
 | <a name="input_igw_tags"></a> [igw\_tags](#input\_igw\_tags) | Additional tags for the internet gateway | `map(string)` | `{}` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name to be used on all the resources as identifier | `string` | `"egress-vpc"` | no |
+| <a name="input_nat_eip_tags"></a> [nat\_eip\_tags](#input\_nat\_eip\_tags) | Additional tags for the NAT EIP | `map(string)` | `{}` | no |
+| <a name="input_nat_gateway_tags"></a> [nat\_gateway\_tags](#input\_nat\_gateway\_tags) | Additional tags for the NAT gateways | `map(string)` | `{}` | no |
 | <a name="input_private_route_table_routes"></a> [private\_route\_table\_routes](#input\_private\_route\_table\_routes) | Configuration block of routes. See https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_route_table#route | `list(map(string))` | `[]` | no |
 | <a name="input_public_acl_tags"></a> [public\_acl\_tags](#input\_public\_acl\_tags) | Additional tags for the public subnets network ACL | `map(string)` | `{}` | no |
 | <a name="input_public_route_table_tags"></a> [public\_route\_table\_tags](#input\_public\_route\_table\_tags) | Additional tags for the public subnet route tables | `map(string)` | `{}` | no |
@@ -62,6 +77,9 @@ No modules.
 |------|------|
 | [aws_default_network_acl.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_network_acl) | resource |
 | [aws_default_security_group.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_security_group) | resource |
+| [aws_eip.nat](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip) | resource |
+| [aws_internet_gateway.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/internet_gateway) | resource |
+| [aws_nat_gateway.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/nat_gateway) | resource |
 | [aws_network_acl.firewall](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_acl) | resource |
 | [aws_network_acl.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_acl) | resource |
 | [aws_network_acl.transit_gateway](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_acl) | resource |
