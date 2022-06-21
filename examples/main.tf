@@ -7,6 +7,3 @@ module "egress_vpc" {
   transit_gateway_subnets = ["10.1.1.192/28", "10.1.1.208/28", "10.1.1.224/28", "10.1.1.240/28"]
   availability_zone_names = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 }
-output "availability_zone_names" {
-  value = module.egress_vpc.availability_zone_names
-}

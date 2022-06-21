@@ -52,9 +52,78 @@ resource "aws_default_network_acl" "default" {
     var.tags,
   )
 }
+#
+# GATEWAYS
+#
+
+resource "aws_internet_gateway" "this" {
+  vpc_id = aws_vpc.egress.id
+
+  tags = merge(
+    {
+      "Name" = format("%s", var.name)
+    },
+    var.tags,
+    var.igw_tags,
+  )
+}
+
+resource "aws_eip" "nat" {
+  count = (length(var.availability_zone_names))
+
+  vpc = true
+
+  tags = merge(
+    {
+      "Name" = format(
+        "${var.name}-%s",
+        element(var.availability_zone_names, count.index),
+      )
+    },
+    var.tags,
+    var.nat_eip_tags,
+  )
+}
+
+resource "aws_nat_gateway" "this" {
+  count = (length(var.availability_zone_names))
+
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+
+  tags = merge(
+    {
+      "Name" = format(
+        "${var.name}-%s",
+        element(var.availability_zone_names, count.index),
+      )
+    },
+    var.tags,
+    var.nat_gateway_tags,
+  )
+
+  depends_on = [aws_internet_gateway.this]
+}
+#
+# AMAZON NETWORK FIREWALL
+# 
+resource "aws_networkfirewall_firewall" "egress" {
+  name                = var.name
+  firewall_policy_arn = ""
+  vpc_id              = aws_vpc.egress.id
+
+  dynamic "subnet_mapping" {
+    for_each = tolist(aws_subnet.firewall.*.id)
+    content {
+      subnet_id = subnet_mapping.value
+    }
+  }
+
+  tags = merge(var.tags, var.firewall_tags)
+}
 
 #
-# NAT GATEWAY (NGW) SUBNETS
+# NAT GATEWAY (public) SUBNETS
 #
 resource "aws_subnet" "public" {
   count = (length(var.availability_zone_names) <= length(data.aws_availability_zones.azs)) ? length(var.availability_zone_names) : 0

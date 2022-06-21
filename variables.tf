@@ -118,6 +118,12 @@ variable "firewall_subnet_tags" {
   default     = {}
 }
 
+variable "firewall_tags" {
+  description = "Additional tags for the firewall subnets"
+  type        = map(string)
+  default     = {}
+}
+
 variable "transit_gateway_subnet_tags" {
   description = "Additional tags for the transit gateway subnets"
   type        = map(string)
@@ -144,6 +150,18 @@ variable "firewall_acl_tags" {
 
 variable "transit_gateway_acl_tags" {
   description = "Additional tags for the transit gateway subnets network ACL"
+  type        = map(string)
+  default     = {}
+}
+
+variable "nat_gateway_tags" {
+  description = "Additional tags for the NAT gateways"
+  type        = map(string)
+  default     = {}
+}
+
+variable "nat_eip_tags" {
+  description = "Additional tags for the NAT EIP"
   type        = map(string)
   default     = {}
 }
