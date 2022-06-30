@@ -32,6 +32,18 @@ variable "name" {
   type        = string
   default     = "egress-vpc"
 }
+
+variable "firewall_policy_arn" {
+  description = "arn of the firewall policy. Overrides default policy of any -> any"
+  type        = string
+  default     = ""
+}
+
+variable "transit_gateway_id" {
+  description = "id of the transit gateway for tgw subnet attachment"
+  type        = string
+}
+
 variable "public_subnets" {
   description = "A list of public subnet cidr blocks inside the VPC"
   type        = list(string)
@@ -65,13 +77,13 @@ variable "public_subnet_suffix" {
 variable "firewall_subnet_suffix" {
   description = "Suffix to append to firewall subnet name"
   type        = string
-  default     = "nwf"
+  default     = "network-firewall"
 }
 
 variable "transit_gateway_subnet_suffix" {
   description = "Suffix to append to transit gateway subnet name"
   type        = string
-  default     = "tgw"
+  default     = "transit-gateway"
 }
 
 # maps
@@ -88,19 +100,19 @@ variable "vpc_tags" {
 }
 
 
-variable "public_route_table_tags" {
+variable "public_subnet_route_table_tags" {
   description = "Additional tags for the public subnet route tables"
   type        = map(string)
   default     = {}
 }
 
-variable "firewall_route_table_tags" {
+variable "firewall_subnet_route_table_tags" {
   description = "Additional tags for the firewall subnet route tables"
   type        = map(string)
   default     = {}
 }
 
-variable "transit_gateway_route_table_tags" {
+variable "transit_gateway_subnet_route_table_tags" {
   description = "Additional tags for the transit gateway subnet route tables"
   type        = map(string)
   default     = {}
@@ -119,7 +131,13 @@ variable "firewall_subnet_tags" {
 }
 
 variable "firewall_tags" {
-  description = "Additional tags for the firewall subnets"
+  description = "Additional tags for the firewall"
+  type        = map(string)
+  default     = {}
+}
+
+variable "firewall_policy_tags" {
+  description = "Additional tags for the firewall policy"
   type        = map(string)
   default     = {}
 }

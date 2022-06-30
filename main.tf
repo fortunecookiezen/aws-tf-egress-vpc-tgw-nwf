@@ -104,12 +104,14 @@ resource "aws_nat_gateway" "this" {
 
   depends_on = [aws_internet_gateway.this]
 }
+
 #
 # AMAZON NETWORK FIREWALL
 # 
+
 resource "aws_networkfirewall_firewall" "egress" {
   name                = var.name
-  firewall_policy_arn = ""
+  firewall_policy_arn = var.firewall_policy_arn != "" ? var.firewall_policy_arn : aws_networkfirewall_firewall_policy.default.arn
   vpc_id              = aws_vpc.egress.id
 
   dynamic "subnet_mapping" {
@@ -120,6 +122,16 @@ resource "aws_networkfirewall_firewall" "egress" {
   }
 
   tags = merge(var.tags, var.firewall_tags)
+}
+
+resource "aws_networkfirewall_firewall_policy" "default" {
+  name = "default-egress-policy"
+
+  firewall_policy {
+    stateless_default_actions          = ["aws:pass"]
+    stateless_fragment_default_actions = ["aws:drop"]
+  }
+  tags = merge(var.tags, var.firewall_policy_tags)
 }
 
 #
@@ -196,6 +208,155 @@ resource "aws_subnet" "transit_gateway" {
     var.transit_gateway_subnet_tags,
   )
 }
+
+resource "aws_ec2_transit_gateway_vpc_attachment" "egress" {
+  subnet_ids         = toset(aws_subnet.transit_gateway[*].id)
+  transit_gateway_id = data.aws_ec2_transit_gateway.this.id
+  vpc_id             = aws_vpc.egress.id
+
+  appliance_mode_support                          = "enable"
+  dns_support                                     = "enable"
+  transit_gateway_default_route_table_association = false
+  transit_gateway_default_route_table_propagation = false
+}
+
+#
+# PUBLIC ROUTES
+#
+
+resource "aws_route_table" "public_subnet" {
+  count = length(var.public_subnets)
+
+  vpc_id = aws_vpc.egress.id
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.public_subnet_suffix}-rt", var.name)
+    },
+    var.tags,
+    var.public_subnet_route_table_tags,
+  )
+}
+
+resource "aws_route_table_association" "public_subnet" {
+  count = length(var.public_subnets)
+
+  subnet_id      = element(aws_subnet.public.*.id, count.index)
+  route_table_id = element(aws_route_table.public_subnet.*.id, count.index)
+}
+
+
+resource "aws_route" "public_internet_gateway" {
+  count = length(var.public_subnets)
+
+  route_table_id         = element(aws_route_table.public_subnet.*.id, count.index)
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.this.id
+
+  timeouts {
+    create = "5m"
+  }
+}
+
+resource "aws_route" "public_home_net" {
+  count = length(var.public_subnets)
+
+  route_table_id         = element(aws_route_table.public_subnet.*.id, count.index)
+  destination_cidr_block = var.home_net
+  vpc_endpoint_id        = flatten(aws_networkfirewall_firewall.egress.firewall_status[*].sync_states[*].*.attachment[*])[count.index].endpoint_id
+
+  timeouts {
+    create = "5m"
+  }
+}
+
+#
+# FIREWALL SUBNET ROUTES
+#
+
+resource "aws_route_table" "firewall_subnet" {
+  count = length(var.firewall_subnets)
+
+  vpc_id = aws_vpc.egress.id
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.firewall_subnet_suffix}-rt", var.name)
+    },
+    var.tags,
+    var.firewall_subnet_route_table_tags,
+  )
+}
+
+resource "aws_route_table_association" "firewall" {
+  count = length(var.firewall_subnets)
+
+  subnet_id      = element(aws_subnet.firewall.*.id, count.index)
+  route_table_id = element(aws_route_table.firewall_subnet.*.id, count.index)
+}
+
+resource "aws_route" "firewall_subnet_default_route" {
+  count = length(var.firewall_subnets)
+
+  route_table_id         = element(aws_route_table.firewall_subnet.*.id, count.index)
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.this[count.index].id
+
+  timeouts {
+    create = "5m"
+  }
+}
+
+resource "aws_route" "firewall_subnet_home_net_route" {
+  count = length(var.firewall_subnets)
+
+  route_table_id         = element(aws_route_table.firewall_subnet.*.id, count.index)
+  destination_cidr_block = var.home_net
+  transit_gateway_id     = data.aws_ec2_transit_gateway.this.id
+
+  timeouts {
+    create = "5m"
+  }
+}
+
+
+#
+# TRANSIT GATEWAY SUBNET ROUTES
+#
+
+resource "aws_route_table" "transit_gateway_subnet" {
+  count = length(var.transit_gateway_subnets)
+
+  vpc_id = aws_vpc.egress.id
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.transit_gateway_subnet_suffix}-rt", var.name)
+    },
+    var.tags,
+    var.transit_gateway_subnet_route_table_tags,
+  )
+}
+
+resource "aws_route_table_association" "transit_gateway_subnet" {
+  count = length(var.transit_gateway_subnets)
+
+  subnet_id      = element(aws_subnet.transit_gateway.*.id, count.index)
+  route_table_id = element(aws_route_table.transit_gateway_subnet.*.id, count.index)
+}
+
+
+# resource "aws_route" "transit_gateway_subnet_default_route" {
+#   count = length(var.transit_gateway_subnets)
+
+#   route_table_id         = element(aws_route_table.transit_gateway.*.id, count.index)
+#   destination_cidr_block = "0.0.0.0/0"
+#   nat_gateway_id         = aws_nat_gateway.this[count.index].id
+
+#   timeouts {
+#     create = "5m"
+#   }
+# }
 
 #
 # NACLS - we don't really use these for access control, so they're pretty loose.
