@@ -19,9 +19,6 @@ output "transit_gateway_subnets" {
   value = module.egress_vpc.transit_gateway_subnet_ids
 }
 
-output "firewall_status" {
-  value = module.egress_vpc.firewall_status
-}
 output "firewall_endpoint_id" {
   value = module.egress_vpc.network_firewall_endpoint_id
 }
