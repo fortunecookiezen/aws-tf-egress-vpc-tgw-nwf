@@ -52,6 +52,126 @@ resource "aws_default_network_acl" "default" {
     var.tags,
   )
 }
+
+#
+# FLOW LOGS
+#
+
+resource "aws_flow_log" "egress_vpc" {
+  count                    = var.vpc_flow_logs != "" ? 1 : 0
+  iam_role_arn             = var.vpc_flow_logs == "CLOUDWATCH" ? aws_iam_role.flow_log[0].arn : null
+  log_destination_type     = var.vpc_flow_logs == "CLOUDWATCH" ? "cloud-watch-logs" : "s3"
+  log_destination          = var.vpc_flow_logs == "CLOUDWATCH" ? aws_cloudwatch_log_group.egress_vpc[0].arn : (var.flow_log_bucket_arn != "" ? var.flow_log_bucket_arn : aws_s3_bucket.flow_logs[0].arn)
+  max_aggregation_interval = 600
+  traffic_type             = "ALL"
+  vpc_id                   = aws_vpc.egress.id
+
+  tags = merge(
+    {
+      Name = "egress_vpc"
+    },
+    var.tags,
+  )
+}
+
+resource "aws_s3_bucket" "flow_logs" {
+  count  = var.vpc_flow_logs == "S3" && var.flow_log_bucket_arn == "" ? 1 : 0
+  bucket = "${var.name}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+}
+
+resource "aws_s3_bucket_logging" "flow_logs" {
+  count         = var.vpc_flow_logs == "S3" && var.s3_log_bucket != "" ? 1 : 0
+  bucket        = aws_s3_bucket.flow_logs[0].id
+  target_bucket = var.s3_log_bucket
+  target_prefix = "${aws_s3_bucket.flow_logs[0].id}/"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "crypto" {
+  count  = var.vpc_flow_logs == "S3" && var.flow_log_bucket_arn == "" ? 1 : 0
+  bucket = aws_s3_bucket.flow_logs[0].id
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = var.kms_master_key_id != "" ? var.kms_master_key_id : null
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "versioning" {
+  count  = var.vpc_flow_logs == "S3" && var.flow_log_bucket_arn == "" ? 1 : 0
+  bucket = aws_s3_bucket.flow_logs[0].id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "block" {
+  count                   = var.vpc_flow_logs == "S3" && var.flow_log_bucket_arn == "" ? 1 : 0
+  bucket                  = aws_s3_bucket.flow_logs[0].id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_cloudwatch_log_group" "egress_vpc" {
+  count             = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
+  name              = "egress_vpc_flowlogs"
+  retention_in_days = var.log_retention_days
+}
+
+resource "aws_iam_role" "flow_log" {
+  count = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "vpc-flow-logs.amazonaws.com"
+        }
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+          ArnLike = {
+            "aws:SourceArn" = aws_cloudwatch_log_group.egress_vpc[0].id
+          }
+        }
+      }
+    ]
+  })
+  tags = merge(
+    var.tags,
+  )
+}
+
+resource "aws_iam_role_policy" "flow_log" {
+  count = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
+  role  = aws_iam_role.flow_log[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "${aws_cloudwatch_log_group.egress_vpc[0].arn}"
+          #   "${aws_cloudwatch_log_group.egress_vpc[0].arn}:log-stream:*"
+        ]
+      }
+    ]
+  })
+}
+
 #
 # GATEWAYS
 #
@@ -132,6 +252,27 @@ resource "aws_networkfirewall_firewall_policy" "default" {
     stateless_fragment_default_actions = ["aws:drop"]
   }
   tags = merge(var.tags, var.firewall_policy_tags)
+}
+
+resource "aws_cloudwatch_log_group" "egress_firewall" {
+  count             = var.cloudwatch_logs != "" ? 1 : 0
+  name              = var.firewall_log_group_name
+  retention_in_days = var.log_retention_days
+}
+
+resource "aws_networkfirewall_logging_configuration" "cloudwatch" {
+  count        = var.cloudwatch_logs != "" ? 1 : 0
+  firewall_arn = aws_networkfirewall_firewall.egress.arn
+
+  logging_configuration {
+    log_destination_config {
+      log_destination = {
+        logGroup = aws_cloudwatch_log_group.egress_firewall[0].name
+      }
+      log_destination_type = "CloudWatchLogs"
+      log_type             = var.cloudwatch_logs
+    }
+  }
 }
 
 #

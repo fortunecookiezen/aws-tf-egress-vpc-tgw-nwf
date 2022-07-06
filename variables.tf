@@ -21,6 +21,36 @@ variable "cidr" {
   type        = string
 }
 
+variable "cloudwatch_logs" {
+  description = "send firewall logs to cloudwatch log group. If unset, logs will not be sent. Allowed values are \"ALERT\" and \"FLOW\"."
+  type        = string
+  default     = ""
+}
+
+variable "firewall_log_group_name" {
+  description = "name of the cloudwatch log group for firewall logs. Defaults to \"Firewall\"."
+  type        = string
+  default     = "Firewall"
+}
+
+variable "s3_logs" {
+  description = "send firewall logs to s3 bucket. If unset, logs will not be sent. Allowed values are \"ALERT\" and \"FLOW\"."
+  type        = string
+  default     = ""
+}
+
+variable "vpc_flow_logs" {
+  description = "Log vpc traffic flows. If unset, vpc traffic flows will not be logged. If set, all vpc traffic will be logged. Allowed values are \"CLOUDWATCH\" and \"S3\"."
+  type        = string
+  default     = ""
+}
+
+variable "flow_log_bucket_arn" {
+  description = "Optional arn of s3 bucket destination for flow logs. If not specified, a bucket will be created."
+  type        = string
+  default     = ""
+}
+
 variable "home_net" {
   description = "summary cidr block for all resources behind this egress vpc"
   type        = string
@@ -35,6 +65,24 @@ variable "name" {
 
 variable "firewall_policy_arn" {
   description = "arn of the firewall policy. Overrides default policy of any -> any"
+  type        = string
+  default     = ""
+}
+
+variable "kms_master_key_id" {
+  description = "AWS KMS master key id used for bucket and log storage encryption. If empty, this module will use the default AWS-managed kms service key."
+  type        = string
+  default     = ""
+}
+
+variable "log_retention_days" {
+  description = "Number of days to retain cloudwatch logs, default is 90"
+  type        = number
+  default     = 90
+}
+
+variable "s3_log_bucket" {
+  description = "Name of s3 bucket for s3 bucket access logs"
   type        = string
   default     = ""
 }
