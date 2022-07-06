@@ -486,18 +486,17 @@ resource "aws_route_table_association" "transit_gateway_subnet" {
   route_table_id = element(aws_route_table.transit_gateway_subnet.*.id, count.index)
 }
 
+resource "aws_route" "transit_gateway_subnet_default_route" {
+  count = length(var.transit_gateway_subnets)
 
-# resource "aws_route" "transit_gateway_subnet_default_route" {
-#   count = length(var.transit_gateway_subnets)
+  route_table_id         = element(aws_route_table.transit_gateway_subnet.*.id, count.index)
+  destination_cidr_block = "0.0.0.0/0"
+  vpc_endpoint_id        = flatten(aws_networkfirewall_firewall.egress.firewall_status[*].sync_states[*].*.attachment[*])[count.index].endpoint_id
 
-#   route_table_id         = element(aws_route_table.transit_gateway.*.id, count.index)
-#   destination_cidr_block = "0.0.0.0/0"
-#   nat_gateway_id         = aws_nat_gateway.this[count.index].id
-
-#   timeouts {
-#     create = "5m"
-#   }
-# }
+  timeouts {
+    create = "5m"
+  }
+}
 
 #
 # NACLS - we don't really use these for access control, so they're pretty loose.
