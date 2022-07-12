@@ -62,7 +62,7 @@ resource "aws_flow_log" "egress_vpc" {
   iam_role_arn             = var.vpc_flow_logs == "CLOUDWATCH" ? aws_iam_role.flow_log[0].arn : null
   log_destination_type     = var.vpc_flow_logs == "CLOUDWATCH" ? "cloud-watch-logs" : "s3"
   log_destination          = var.vpc_flow_logs == "CLOUDWATCH" ? aws_cloudwatch_log_group.egress_vpc[0].arn : (var.flow_log_bucket_arn != "" ? var.flow_log_bucket_arn : aws_s3_bucket.flow_logs[0].arn)
-  max_aggregation_interval = 600
+  max_aggregation_interval = var.vpc_flow_logs == "CLOUDWATCH" ? 60 : 600
   traffic_type             = "ALL"
   vpc_id                   = aws_vpc.egress.id
 
@@ -116,12 +116,13 @@ resource "aws_s3_bucket_public_access_block" "block" {
 
 resource "aws_cloudwatch_log_group" "egress_vpc" {
   count             = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
-  name              = "egress_vpc_flowlogs"
+  name              = "vpc-flowlogs/${var.name}"
   retention_in_days = var.log_retention_days
 }
 
 resource "aws_iam_role" "flow_log" {
-  count = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
+  count       = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
+  name_prefix = "${var.name}-flow-log-"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -131,14 +132,6 @@ resource "aws_iam_role" "flow_log" {
         Principal = {
           Service = "vpc-flow-logs.amazonaws.com"
         }
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
-          }
-          ArnLike = {
-            "aws:SourceArn" = aws_cloudwatch_log_group.egress_vpc[0].id
-          }
-        }
       }
     ]
   })
@@ -146,7 +139,6 @@ resource "aws_iam_role" "flow_log" {
     var.tags,
   )
 }
-
 resource "aws_iam_role_policy" "flow_log" {
   count = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
   role  = aws_iam_role.flow_log[0].id
@@ -162,11 +154,8 @@ resource "aws_iam_role_policy" "flow_log" {
           "logs:DescribeLogGroups",
           "logs:DescribeLogStreams"
         ]
-        Effect = "Allow"
-        Resource = [
-          "${aws_cloudwatch_log_group.egress_vpc[0].arn}"
-          #   "${aws_cloudwatch_log_group.egress_vpc[0].arn}:log-stream:*"
-        ]
+        Effect   = "Allow"
+        Resource = "*"
       }
     ]
   })

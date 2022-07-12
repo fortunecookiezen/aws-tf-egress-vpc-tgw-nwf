@@ -30,7 +30,7 @@ variable "cloudwatch_logs" {
 variable "firewall_log_group_name" {
   description = "name of the cloudwatch log group for firewall logs. Defaults to \"Firewall\"."
   type        = string
-  default     = "Firewall"
+  default     = "firewall"
 }
 
 variable "s3_logs" {

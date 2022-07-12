@@ -14,7 +14,7 @@ module "egress_vpc" {
   vpc_flow_logs           = "CLOUDWATCH"
 
   firewall_policy_tags = {
-    Name = "default egress policy"
+    Name = "default-egress-policy"
   }
 }
 output "transit_gateway_subnets" {
