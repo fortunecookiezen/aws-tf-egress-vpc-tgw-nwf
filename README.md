@@ -58,11 +58,11 @@ output "firewall_endpoint_id" {
   value = module.egress_vpc.network_firewall_endpoint_id
 }
 
-output "us-east-1a" {
+output "anwf-eni-us-east-1a" {
   value = lookup(module.egress_vpc.eni_lookup, "us-east-1a")
 }
 
-output "us-east-1b" {
+output "anwf-eni-us-east-1b" {
   value = lookup(module.egress_vpc.eni_lookup, "us-east-1b")
 }
 ```
