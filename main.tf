@@ -5,7 +5,7 @@ resource "aws_vpc" "egress" {
 
   tags = merge(
     {
-      "Name"   = format("%s", var.name)
+      "Name"   = format("%s-vpc", var.name)
       "Region" = format("%s", data.aws_region.current.name)
     },
     var.tags,
@@ -68,7 +68,7 @@ resource "aws_flow_log" "egress_vpc" {
 
   tags = merge(
     {
-      Name = "egress_vpc"
+      Name = format("%s-vpc", var.name)
     },
     var.tags,
   )
@@ -77,6 +77,12 @@ resource "aws_flow_log" "egress_vpc" {
 resource "aws_s3_bucket" "flow_logs" {
   count  = var.vpc_flow_logs == "S3" && var.flow_log_bucket_arn == "" ? 1 : 0
   bucket = "${var.name}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+
+
+  tags = merge(
+    var.tags,
+    var.bucket_tags
+  )
 }
 
 resource "aws_s3_bucket_logging" "flow_logs" {
@@ -237,29 +243,174 @@ resource "aws_networkfirewall_firewall_policy" "default" {
   name = "default-egress-policy"
 
   firewall_policy {
-    stateless_default_actions          = ["aws:pass"]
-    stateless_fragment_default_actions = ["aws:drop"]
+    stateless_default_actions          = ["aws:forward_to_sfe"]
+    stateless_fragment_default_actions = ["aws:forward_to_sfe"]
+
+    stateful_rule_group_reference {
+      resource_arn = aws_networkfirewall_rule_group.egress.arn
+    }
+
+    # managed rule groups don't work in this use case because $HOME_NET is the vpc cidr and cannot be configured to a different value
+    # but, this it what it would look like if it could
+
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/AbusedLegitBotNetCommandAndControlDomainsActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/AbusedLegitMalwareDomainsActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/BotNetCommandAndControlDomainsActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/MalwareDomainsActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesBotnetActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesBotnetWebActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesBotnetWindowsActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesDoSActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesEmergingEventsActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesExploitsActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesFUPActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesIOCActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesMalwareActionOrder"
+    # }
+    # stateful_rule_group_reference {
+    #   resource_arn = "arn:aws:network-firewall:us-east-1:aws-managed:stateful-rulegroup/ThreatSignaturesMalwareWebActionOrder"
+    # }
+
   }
   tags = merge(var.tags, var.firewall_policy_tags)
 }
 
-resource "aws_cloudwatch_log_group" "egress_firewall" {
-  count             = var.cloudwatch_logs != "" ? 1 : 0
-  name              = var.firewall_log_group_name
+resource "aws_networkfirewall_rule_group" "egress" {
+  capacity    = 10
+  name        = "default-egress-rule-group"
+  description = "egress firewall rule group that allows http/s outbound traffic on ports 80 and 443 to any address"
+  type        = "STATEFUL"
+
+  rule_group {
+    rule_variables {
+      ip_sets {
+        key = "HOME_NET"
+        ip_set {
+          definition = ["${var.home_net}"]
+        }
+      }
+      port_sets {
+        key = "HTTP_PORTS"
+        port_set {
+          definition = var.http_ports
+        }
+      }
+      port_sets {
+        key = "TLS_PORTS"
+        port_set {
+          definition = var.tls_ports
+        }
+      }
+    }
+    rules_source {
+      stateful_rule {
+        action = "PASS"
+        header {
+          destination      = "Any"
+          destination_port = "$HTTP_PORTS"
+          direction        = "FORWARD"
+          protocol         = "HTTP"
+          source           = "$HOME_NET"
+          source_port      = "Any"
+        }
+        rule_option {
+          keyword = "sid:1"
+        }
+      }
+      stateful_rule {
+        action = "PASS"
+        header {
+          destination      = "Any"
+          destination_port = "$TLS_PORTS"
+          direction        = "FORWARD"
+          protocol         = "TLS"
+          source           = "$HOME_NET"
+          source_port      = "Any"
+        }
+        rule_option {
+          keyword = "sid:2"
+        }
+      }
+      stateful_rule {
+        action = "DROP"
+        header {
+          destination      = "Any"
+          destination_port = "Any"
+          direction        = "FORWARD"
+          protocol         = "IP"
+          source           = "Any"
+          source_port      = "Any"
+        }
+        rule_option {
+          keyword = "sid:3"
+        }
+      }
+    }
+    stateful_rule_options {
+      rule_order = "DEFAULT_ACTION_ORDER"
+    }
+  }
+  tags = merge(
+    {
+      "Name" = format(
+        "%s-firewall-rule-group", var.name
+      )
+    },
+  var.tags, var.firewall_tags)
+}
+
+resource "aws_cloudwatch_log_group" "flow" {
+  name              = "/aws/${var.firewall_log_group_name}/flow"
+  retention_in_days = var.log_retention_days
+}
+
+resource "aws_cloudwatch_log_group" "alert" {
+  name              = "/aws/${var.firewall_log_group_name}/alert"
   retention_in_days = var.log_retention_days
 }
 
 resource "aws_networkfirewall_logging_configuration" "cloudwatch" {
-  count        = var.cloudwatch_logs != "" ? 1 : 0
   firewall_arn = aws_networkfirewall_firewall.egress.arn
 
   logging_configuration {
     log_destination_config {
       log_destination = {
-        logGroup = aws_cloudwatch_log_group.egress_firewall[0].name
+        logGroup = aws_cloudwatch_log_group.alert.name
       }
       log_destination_type = "CloudWatchLogs"
-      log_type             = var.cloudwatch_logs
+      log_type             = "ALERT"
+    }
+    log_destination_config {
+      log_destination = {
+        logGroup = aws_cloudwatch_log_group.flow.name
+      }
+      log_destination_type = "CloudWatchLogs"
+      log_type             = "FLOW"
     }
   }
 }
@@ -348,6 +499,10 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "egress" {
   dns_support                                     = "enable"
   transit_gateway_default_route_table_association = false
   transit_gateway_default_route_table_propagation = false
+
+  tags = {
+    Name = var.name
+  }
 }
 
 #
@@ -361,7 +516,7 @@ resource "aws_route_table" "public_subnet" {
 
   tags = merge(
     {
-      "Name" = format("%s-${var.public_subnet_suffix}-rt", var.name)
+      "Name" = format("%s-${var.public_subnet_suffix}-%s", var.name, var.availability_zone_names[count.index])
     },
     var.tags,
     var.public_subnet_route_table_tags,
@@ -393,7 +548,7 @@ resource "aws_route" "public_home_net" {
 
   route_table_id         = element(aws_route_table.public_subnet.*.id, count.index)
   destination_cidr_block = var.home_net
-  vpc_endpoint_id        = flatten(aws_networkfirewall_firewall.egress.firewall_status[*].sync_states[*].*.attachment[*])[count.index].endpoint_id
+  vpc_endpoint_id        = lookup(local.eni_lookup, var.availability_zone_names[count.index])
 
   timeouts {
     create = "5m"
@@ -411,7 +566,7 @@ resource "aws_route_table" "firewall_subnet" {
 
   tags = merge(
     {
-      "Name" = format("%s-${var.firewall_subnet_suffix}-rt", var.name)
+      "Name" = format("%s-${var.firewall_subnet_suffix}-%s", var.name, var.availability_zone_names[count.index])
     },
     var.tags,
     var.firewall_subnet_route_table_tags,
@@ -461,7 +616,7 @@ resource "aws_route_table" "transit_gateway_subnet" {
 
   tags = merge(
     {
-      "Name" = format("%s-${var.transit_gateway_subnet_suffix}-rt", var.name)
+      "Name" = format("%s-${var.transit_gateway_subnet_suffix}-%s", var.name, var.availability_zone_names[count.index])
     },
     var.tags,
     var.transit_gateway_subnet_route_table_tags,
@@ -480,7 +635,7 @@ resource "aws_route" "transit_gateway_subnet_default_route" {
 
   route_table_id         = element(aws_route_table.transit_gateway_subnet.*.id, count.index)
   destination_cidr_block = "0.0.0.0/0"
-  vpc_endpoint_id        = flatten(aws_networkfirewall_firewall.egress.firewall_status[*].sync_states[*].*.attachment[*])[count.index].endpoint_id
+  vpc_endpoint_id        = lookup(local.eni_lookup, var.availability_zone_names[count.index])
 
   timeouts {
     create = "5m"
@@ -567,7 +722,7 @@ resource "aws_network_acl" "transit_gateway" {
     protocol   = -1
     rule_no    = 100
     action     = "allow"
-    cidr_block = var.home_net
+    cidr_block = "0.0.0.0/0" #or else your traffic gets rejected by the tgw attachment https://docs.aws.amazon.com/vpc/latest/tgw/tgw-nacls.html
     from_port  = 0
     to_port    = 0
   }
@@ -576,7 +731,7 @@ resource "aws_network_acl" "transit_gateway" {
     protocol   = -1
     rule_no    = 100
     action     = "allow"
-    cidr_block = "0.0.0.0/0" #leaving this here so it can talk to s3 gateway endpoints
+    cidr_block = "0.0.0.0/0"
     from_port  = 0
     to_port    = 0
   }

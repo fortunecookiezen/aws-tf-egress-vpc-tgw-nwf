@@ -21,12 +21,6 @@ variable "cidr" {
   type        = string
 }
 
-variable "cloudwatch_logs" {
-  description = "send firewall logs to cloudwatch log group. If unset, logs will not be sent. Allowed values are \"ALERT\" and \"FLOW\"."
-  type        = string
-  default     = ""
-}
-
 variable "firewall_log_group_name" {
   description = "name of the cloudwatch log group for firewall logs. Defaults to \"Firewall\"."
   type        = string
@@ -60,7 +54,7 @@ variable "home_net" {
 variable "name" {
   description = "Name to be used on all the resources as identifier"
   type        = string
-  default     = "egress-vpc"
+  default     = "anwf"
 }
 
 variable "firewall_policy_arn" {
@@ -90,6 +84,17 @@ variable "s3_log_bucket" {
 variable "transit_gateway_id" {
   description = "id of the transit gateway for tgw subnet attachment"
   type        = string
+}
+variable "http_ports" {
+  description = "Destination ports for HTTP traffic"
+  type        = list(string)
+  default     = ["80"]
+}
+
+variable "tls_ports" {
+  description = "Destination ports for TLS traffic"
+  type        = list(string)
+  default     = ["443"]
 }
 
 variable "public_subnets" {
@@ -137,6 +142,12 @@ variable "transit_gateway_subnet_suffix" {
 # maps
 variable "tags" {
   description = "A map of tags to add to all resources"
+  type        = map(string)
+  default     = {}
+}
+
+variable "bucket_tags" {
+  description = "A map of tags to add to s3 buckets"
   type        = map(string)
   default     = {}
 }
