@@ -14,5 +14,6 @@ output "network_firewall_endpoint_id" {
 }
 
 output "eni_lookup" {
-  value = local.eni_lookup
+  description = "Provided for troubleshooting so you can access per-az maps of anwf enis"
+  value       = local.eni_lookup
 }

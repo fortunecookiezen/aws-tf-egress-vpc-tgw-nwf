@@ -149,7 +149,8 @@ No modules.
 | [aws_networkfirewall_firewall.egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/networkfirewall_firewall) | resource |
 | [aws_networkfirewall_firewall_policy.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/networkfirewall_firewall_policy) | resource |
 | [aws_networkfirewall_logging_configuration.cloudwatch](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/networkfirewall_logging_configuration) | resource |
-| [aws_networkfirewall_rule_group.egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/networkfirewall_rule_group) | resource |
+| [aws_networkfirewall_rule_group.stateful-egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/networkfirewall_rule_group) | resource |
+| [aws_networkfirewall_rule_group.stateless-egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/networkfirewall_rule_group) | resource |
 | [aws_route.firewall_subnet_default_route](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route) | resource |
 | [aws_route.firewall_subnet_home_net_route](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route) | resource |
 | [aws_route.public_home_net](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route) | resource |
@@ -179,7 +180,7 @@ No modules.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_eni_lookup"></a> [eni\_lookup](#output\_eni\_lookup) | n/a |
+| <a name="output_eni_lookup"></a> [eni\_lookup](#output\_eni\_lookup) | Provided for troubleshooting so you can access per-az maps of anwf enis |
 | <a name="output_firewall_attachments"></a> [firewall\_attachments](#output\_firewall\_attachments) | output used to inspect firewall endpoint ids for route creation |
 | <a name="output_network_firewall_endpoint_id"></a> [network\_firewall\_endpoint\_id](#output\_network\_firewall\_endpoint\_id) | Created Network Firewall endpoint id |
 | <a name="output_transit_gateway_subnet_ids"></a> [transit\_gateway\_subnet\_ids](#output\_transit\_gateway\_subnet\_ids) | transit gateway subnet ids |

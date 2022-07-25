@@ -247,7 +247,12 @@ resource "aws_networkfirewall_firewall_policy" "default" {
     stateless_fragment_default_actions = ["aws:forward_to_sfe"]
 
     stateful_rule_group_reference {
-      resource_arn = aws_networkfirewall_rule_group.egress.arn
+      resource_arn = aws_networkfirewall_rule_group.stateful-egress.arn
+    }
+
+    stateless_rule_group_reference {
+      priority     = 10
+      resource_arn = aws_networkfirewall_rule_group.stateless-egress.arn
     }
 
     # managed rule groups don't work in this use case because $HOME_NET is the vpc cidr and cannot be configured to a different value
@@ -300,10 +305,10 @@ resource "aws_networkfirewall_firewall_policy" "default" {
   tags = merge(var.tags, var.firewall_policy_tags)
 }
 
-resource "aws_networkfirewall_rule_group" "egress" {
+resource "aws_networkfirewall_rule_group" "stateful-egress" {
   capacity    = 10
-  name        = "default-egress-rule-group"
-  description = "egress firewall rule group that allows http/s outbound traffic on ports 80 and 443 to any address"
+  name        = "default-stateful-egress-rule"
+  description = "stateful egress firewall rule group that allows http/s outbound traffic on ports 80 and 443 to any address"
   type        = "STATEFUL"
 
   rule_group {
@@ -356,23 +361,71 @@ resource "aws_networkfirewall_rule_group" "egress" {
           keyword = "sid:2"
         }
       }
-      stateful_rule {
-        action = "DROP"
-        header {
-          destination      = "Any"
-          destination_port = "Any"
-          direction        = "FORWARD"
-          protocol         = "IP"
-          source           = "Any"
-          source_port      = "Any"
-        }
-        rule_option {
-          keyword = "sid:3"
-        }
-      }
     }
     stateful_rule_options {
       rule_order = "DEFAULT_ACTION_ORDER"
+    }
+  }
+  tags = merge(
+    {
+      "Name" = format(
+        "%s-firewall-rule-group", var.name
+      )
+    },
+  var.tags, var.firewall_tags)
+}
+
+resource "aws_networkfirewall_rule_group" "stateless-egress" {
+  capacity    = 10
+  name        = "default-stateless-egress-rule-group"
+  description = "stateless rule group that forwards http/s outbound traffic to stateful rules for inspection and drops all other traffic"
+  type        = "STATELESS"
+
+  rule_group {
+    rules_source {
+      stateless_rules_and_custom_actions {
+        stateless_rule {
+          priority = 1
+          rule_definition {
+            actions = ["aws:forward_to_sfe"]
+            match_attributes {
+              source {
+                address_definition = var.home_net
+              }
+              source_port {
+                from_port = 0
+                to_port   = 65535
+              }
+              destination {
+                address_definition = "0.0.0.0/0"
+              }
+              destination_port {
+                from_port = 80
+                to_port   = 80
+              }
+              destination_port {
+                from_port = 443
+                to_port   = 443
+              }
+              protocols = [6]
+            }
+          }
+        }
+        stateless_rule {
+          priority = 10
+          rule_definition {
+            actions = ["aws:drop"]
+            match_attributes {
+              source {
+                address_definition = var.home_net
+              }
+              destination {
+                address_definition = "0.0.0.0/0"
+              }
+            }
+          }
+        }
+      }
     }
   }
   tags = merge(
