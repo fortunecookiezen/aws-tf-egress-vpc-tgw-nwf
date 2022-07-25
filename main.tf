@@ -399,14 +399,21 @@ resource "aws_networkfirewall_rule_group" "stateless-egress" {
               destination {
                 address_definition = "0.0.0.0/0"
               }
-              destination_port {
-                from_port = 80
-                to_port   = 80
+              dynamic "destination_port" {
+                for_each = flatten([var.http_ports, var.tls_ports])
+                content {
+                  from_port = destination_port.value
+                  to_port   = destination_port.value
+                }
               }
-              destination_port {
-                from_port = 443
-                to_port   = 443
-              }
+              # destination_port {
+              #   from_port = 80
+              #   to_port   = 80
+              # }
+              # destination_port {
+              #   from_port = 443
+              #   to_port   = 443
+              # }
               protocols = [6]
             }
           }
