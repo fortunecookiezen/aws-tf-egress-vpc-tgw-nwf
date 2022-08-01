@@ -36,10 +36,6 @@ jobs:
         files:
          - main.tf
          - examples/main.tf
-         - outputs.tf
-         - variables.tf
-         - data.tf
-         - locals.tf
     steps:
       - uses: actions/checkout@v3
       - name: Run Snyk to check configuration files for security issues
