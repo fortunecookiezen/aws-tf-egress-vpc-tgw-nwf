@@ -10,8 +10,10 @@ module "egress_vpc" {
   #   firewall_subnets        = ["10.1.1.0/28", "10.1.1.16/28", "10.1.1.32/28", "10.1.1.48/28"]
   #   transit_gateway_subnets = ["10.1.1.192/28", "10.1.1.208/28", "10.1.1.224/28", "10.1.1.240/28"]
 
+  http_ports              = ["80"]
+  tls_ports               = ["443"]
   public_subnets          = ["10.1.1.64/27", "10.1.1.96/27"]
-  firewall_subnets        = ["10.1.1.0/28", "10.1.1.16/28"]
+  firewall_subnets        = ["10.1.1.0/28", "10.1.1.16/28"] # these should not be larger than /28. nothing else should live here.
   transit_gateway_subnets = ["10.1.1.192/28", "10.1.1.208/28"]
   availability_zone_names = ["us-east-1a", "us-east-1b"]
   transit_gateway_id      = "tgw-080381551298c8919"
@@ -27,6 +29,10 @@ module "egress_vpc" {
     vpc = "egress-vpc"
   }
 }
+
+# How to add local resources and override the default egress policy
+# and rules the module creates by specifying your own policy and rules
+
 resource "aws_networkfirewall_firewall_policy" "egress" {
   name = "egress-policy"
 
@@ -73,6 +79,8 @@ resource "aws_networkfirewall_rule_group" "domainlist" {
         targets = [
           ".amazon.com",
           ".amazonaws.com",
+          ".awsstatic.com",
+          ".aws.dev",
           ".auth0.com",
           ".google.com",
           ".okta.com",
@@ -156,18 +164,12 @@ resource "aws_networkfirewall_rule_group" "drop" {
   )
 }
 
-output "transit_gateway_subnets" {
-  value = module.egress_vpc.transit_gateway_subnet_ids
+# Provided as an example of accessing the anfw vpce assigned to a specific az
+
+output "anwf-vpce-us-east-1a" {
+  value = lookup(module.egress_vpc.vpce_lookup, "us-east-1a")
 }
 
-output "firewall_endpoint_id" {
-  value = module.egress_vpc.network_firewall_endpoint_id
-}
-
-output "anwf-eni-us-east-1a" {
-  value = lookup(module.egress_vpc.eni_lookup, "us-east-1a")
-}
-
-output "anwf-eni-us-east-1b" {
-  value = lookup(module.egress_vpc.eni_lookup, "us-east-1b")
+output "anwf-vpce-us-east-1b" {
+  value = lookup(module.egress_vpc.vpce_lookup, "us-east-1b")
 }

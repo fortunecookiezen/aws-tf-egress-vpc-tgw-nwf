@@ -4,6 +4,8 @@
 
 Terraform code to create a central egress vpc using nat gateway and aws network firewall as documented by aws in [Building a Scalable and Secure Multi-VPC AWS Network Infrastructure](https://docs.aws.amazon.com/whitepapers/latest/building-scalable-secure-multi-vpc-network-infrastructure/using-nat-gateway-with-firewall.html)
 
+The module creates a default firewall policy and firewall rule groups that allow output HTTP and HTTPS traffic only to a list of configurable ports.
+
 Credit to the following authors and projects for providing helpful examples:
 
 - [aws-samples/aws-network-hub-for-terraform](https://github.com/aws-samples/aws-network-hub-for-terraform)
@@ -35,8 +37,10 @@ module "egress_vpc" {
   #   firewall_subnets        = ["10.1.1.0/28", "10.1.1.16/28", "10.1.1.32/28", "10.1.1.48/28"]
   #   transit_gateway_subnets = ["10.1.1.192/28", "10.1.1.208/28", "10.1.1.224/28", "10.1.1.240/28"]
 
+  http_ports              = ["80"]
+  tls_ports               = ["443"]
   public_subnets          = ["10.1.1.64/27", "10.1.1.96/27"]
-  firewall_subnets        = ["10.1.1.0/28", "10.1.1.16/28"]
+  firewall_subnets        = ["10.1.1.0/28", "10.1.1.16/28"] # these should not be larger than /28. nothing else should live here.
   transit_gateway_subnets = ["10.1.1.192/28", "10.1.1.208/28"]
   availability_zone_names = ["us-east-1a", "us-east-1b"]
   transit_gateway_id      = "tgw-080381551298c8919"
@@ -52,6 +56,10 @@ module "egress_vpc" {
     vpc = "egress-vpc"
   }
 }
+
+# How to add local resources and override the default egress policy
+# and rules the module creates by specifying your own policy and rules
+
 resource "aws_networkfirewall_firewall_policy" "egress" {
   name = "egress-policy"
 
@@ -98,6 +106,8 @@ resource "aws_networkfirewall_rule_group" "domainlist" {
         targets = [
           ".amazon.com",
           ".amazonaws.com",
+          ".awsstatic.com",
+          ".aws.dev",
           ".auth0.com",
           ".google.com",
           ".okta.com",
@@ -181,20 +191,14 @@ resource "aws_networkfirewall_rule_group" "drop" {
   )
 }
 
-output "transit_gateway_subnets" {
-  value = module.egress_vpc.transit_gateway_subnet_ids
+# Provided as an example of accessing the anfw vpce assigned to a specific az
+
+output "anwf-vpce-us-east-1a" {
+  value = lookup(module.egress_vpc.vpce_lookup, "us-east-1a")
 }
 
-output "firewall_endpoint_id" {
-  value = module.egress_vpc.network_firewall_endpoint_id
-}
-
-output "anwf-eni-us-east-1a" {
-  value = lookup(module.egress_vpc.eni_lookup, "us-east-1a")
-}
-
-output "anwf-eni-us-east-1b" {
-  value = lookup(module.egress_vpc.eni_lookup, "us-east-1b")
+output "anwf-vpce-us-east-1b" {
+  value = lookup(module.egress_vpc.vpce_lookup, "us-east-1b")
 }
 ```
 
@@ -228,7 +232,7 @@ No modules.
 | <a name="input_firewall_subnet_route_table_tags"></a> [firewall\_subnet\_route\_table\_tags](#input\_firewall\_subnet\_route\_table\_tags) | Additional tags for the firewall subnet route tables | `map(string)` | `{}` | no |
 | <a name="input_firewall_subnet_suffix"></a> [firewall\_subnet\_suffix](#input\_firewall\_subnet\_suffix) | Suffix to append to firewall subnet name | `string` | `"network-firewall"` | no |
 | <a name="input_firewall_subnet_tags"></a> [firewall\_subnet\_tags](#input\_firewall\_subnet\_tags) | Additional tags for the firewall subnets | `map(string)` | `{}` | no |
-| <a name="input_firewall_subnets"></a> [firewall\_subnets](#input\_firewall\_subnets) | A list of firewall subnet cidr blocks inside the VPC | `list(string)` | `[]` | no |
+| <a name="input_firewall_subnets"></a> [firewall\_subnets](#input\_firewall\_subnets) | A list of firewall subnet cidr blocks inside the VPC. Firewall subnets should not be larger than /28. Nothing else can live in these subnets. | `list(string)` | `[]` | no |
 | <a name="input_firewall_tags"></a> [firewall\_tags](#input\_firewall\_tags) | Additional tags for the firewall | `map(string)` | `{}` | no |
 | <a name="input_flow_log_bucket_arn"></a> [flow\_log\_bucket\_arn](#input\_flow\_log\_bucket\_arn) | Optional arn of s3 bucket destination for flow logs. If not specified, a bucket will be created. | `string` | `""` | no |
 | <a name="input_home_net"></a> [home\_net](#input\_home\_net) | summary cidr block for all resources behind this egress vpc | `string` | `"10.0.0.0/8"` | no |
@@ -311,8 +315,8 @@ No modules.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_eni_lookup"></a> [eni\_lookup](#output\_eni\_lookup) | Provided for troubleshooting so you can access per-az maps of anwf enis |
 | <a name="output_firewall_attachments"></a> [firewall\_attachments](#output\_firewall\_attachments) | output used to inspect firewall endpoint ids for route creation |
 | <a name="output_network_firewall_endpoint_id"></a> [network\_firewall\_endpoint\_id](#output\_network\_firewall\_endpoint\_id) | Created Network Firewall endpoint id |
 | <a name="output_transit_gateway_subnet_ids"></a> [transit\_gateway\_subnet\_ids](#output\_transit\_gateway\_subnet\_ids) | transit gateway subnet ids |
+| <a name="output_vpce_lookup"></a> [vpce\_lookup](#output\_vpce\_lookup) | Provided for troubleshooting so you can access per-az maps of anwf enis |
 <!-- END_TF_DOCS -->

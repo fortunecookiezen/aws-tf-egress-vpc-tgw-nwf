@@ -145,6 +145,8 @@ resource "aws_iam_role" "flow_log" {
     var.tags,
   )
 }
+
+# tfsec:ignore:aws-iam-no-policy-wildcards
 resource "aws_iam_role_policy" "flow_log" {
   count = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
   role  = aws_iam_role.flow_log[0].id
@@ -600,7 +602,7 @@ resource "aws_route" "public_home_net" {
 
   route_table_id         = element(aws_route_table.public_subnet.*.id, count.index)
   destination_cidr_block = var.home_net
-  vpc_endpoint_id        = lookup(local.eni_lookup, var.availability_zone_names[count.index])
+  vpc_endpoint_id        = lookup(local.vpce_lookup, var.availability_zone_names[count.index])
 
   timeouts {
     create = "5m"
@@ -687,7 +689,7 @@ resource "aws_route" "transit_gateway_subnet_default_route" {
 
   route_table_id         = element(aws_route_table.transit_gateway_subnet.*.id, count.index)
   destination_cidr_block = "0.0.0.0/0"
-  vpc_endpoint_id        = lookup(local.eni_lookup, var.availability_zone_names[count.index])
+  vpc_endpoint_id        = lookup(local.vpce_lookup, var.availability_zone_names[count.index])
 
   timeouts {
     create = "5m"

@@ -13,7 +13,7 @@ output "network_firewall_endpoint_id" {
   value       = flatten(aws_networkfirewall_firewall.egress.firewall_status[*].sync_states[*].*.attachment[*])[*].endpoint_id
 }
 
-output "eni_lookup" {
+output "vpce_lookup" {
   description = "Provided for troubleshooting so you can access per-az maps of anwf enis"
-  value       = local.eni_lookup
+  value       = local.vpce_lookup
 }

@@ -104,7 +104,7 @@ variable "public_subnets" {
 }
 
 variable "firewall_subnets" {
-  description = "A list of firewall subnet cidr blocks inside the VPC"
+  description = "A list of firewall subnet cidr blocks inside the VPC. Firewall subnets should not be larger than /28. Nothing else can live in these subnets."
   type        = list(string)
   default     = []
 }
