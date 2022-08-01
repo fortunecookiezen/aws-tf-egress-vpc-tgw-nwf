@@ -1,5 +1,6 @@
 module "egress_vpc" {
   source              = "../"
+  name                = "egress"
   cidr                = "10.1.1.0/24" # cidr shouldn't be bigger than /24
   home_net            = "10.0.0.0/8"
   firewall_policy_arn = aws_networkfirewall_firewall_policy.egress.arn
@@ -15,6 +16,8 @@ module "egress_vpc" {
   availability_zone_names = ["us-east-1a", "us-east-1b"]
   transit_gateway_id      = "tgw-080381551298c8919"
   vpc_flow_logs           = "CLOUDWATCH"
+
+  tags = var.tags
 
   firewall_policy_tags = {
     Name = "default-egress-policy"
@@ -52,6 +55,14 @@ resource "aws_networkfirewall_rule_group" "domainlist" {
   type     = "STATEFUL"
 
   rule_group {
+    rule_variables {
+      ip_sets {
+        key = "HOME_NET"
+        ip_set {
+          definition = ["10.0.0.0/8"]
+        }
+      }
+    }
     rules_source {
       rules_source_list {
         generated_rules_type = "ALLOWLIST"
@@ -62,7 +73,12 @@ resource "aws_networkfirewall_rule_group" "domainlist" {
         targets = [
           ".amazon.com",
           ".amazonaws.com",
+          ".auth0.com",
           ".google.com",
+          ".okta.com",
+          "pypi.python.org",
+          ".pypi.org",
+          ".pythonhosted.org",
           "slashdot.org"
         ]
       }
