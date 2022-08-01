@@ -406,14 +406,6 @@ resource "aws_networkfirewall_rule_group" "stateless-egress" {
                   to_port   = destination_port.value
                 }
               }
-              # destination_port {
-              #   from_port = 80
-              #   to_port   = 80
-              # }
-              # destination_port {
-              #   from_port = 443
-              #   to_port   = 443
-              # }
               protocols = [6]
             }
           }
