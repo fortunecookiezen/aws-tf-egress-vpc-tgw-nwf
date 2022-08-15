@@ -1,6 +1,7 @@
 module "egress_vpc" {
   source              = "../"
   name                = "egress"
+  prefix              = "fncz"
   cidr                = "10.1.1.0/24" # cidr shouldn't be bigger than /24
   home_net            = "10.0.0.0/8"
   firewall_policy_arn = aws_networkfirewall_firewall_policy.egress.arn

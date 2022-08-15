@@ -27,6 +27,12 @@ variable "firewall_log_group_name" {
   default     = "firewall"
 }
 
+variable "prefix" {
+  description = "prefix prepended to certain resource names for organizational clarity"
+  type        = string
+  default     = "fncz"
+}
+
 variable "s3_logs" {
   description = "send firewall logs to s3 bucket. If unset, logs will not be sent. Allowed values are \"ALERT\" and \"FLOW\"."
   type        = string

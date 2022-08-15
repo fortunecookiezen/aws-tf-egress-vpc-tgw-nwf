@@ -28,6 +28,7 @@ Truthfully, I wanted a stack as simple to deploy as Checkpoint's CloudGuard [Tra
 module "egress_vpc" {
   source              = "../"
   name                = "egress"
+  prefix              = "fncz"
   cidr                = "10.1.1.0/24" # cidr shouldn't be bigger than /24
   home_net            = "10.0.0.0/8"
   firewall_policy_arn = aws_networkfirewall_firewall_policy.egress.arn
@@ -243,6 +244,7 @@ No modules.
 | <a name="input_name"></a> [name](#input\_name) | Name to be used on all the resources as identifier | `string` | `"anwf"` | no |
 | <a name="input_nat_eip_tags"></a> [nat\_eip\_tags](#input\_nat\_eip\_tags) | Additional tags for the NAT EIP | `map(string)` | `{}` | no |
 | <a name="input_nat_gateway_tags"></a> [nat\_gateway\_tags](#input\_nat\_gateway\_tags) | Additional tags for the NAT gateways | `map(string)` | `{}` | no |
+| <a name="input_prefix"></a> [prefix](#input\_prefix) | prefix prepended to certain resource names for organizational clarity | `string` | `"fncz"` | no |
 | <a name="input_private_route_table_routes"></a> [private\_route\_table\_routes](#input\_private\_route\_table\_routes) | Configuration block of routes. See https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_route_table#route | `list(map(string))` | `[]` | no |
 | <a name="input_public_acl_tags"></a> [public\_acl\_tags](#input\_public\_acl\_tags) | Additional tags for the public subnets network ACL | `map(string)` | `{}` | no |
 | <a name="input_public_subnet_route_table_tags"></a> [public\_subnet\_route\_table\_tags](#input\_public\_subnet\_route\_table\_tags) | Additional tags for the public subnet route tables | `map(string)` | `{}` | no |

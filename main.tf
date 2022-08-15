@@ -76,7 +76,7 @@ resource "aws_flow_log" "egress_vpc" {
 
 resource "aws_s3_bucket" "flow_logs" {
   count  = var.vpc_flow_logs == "S3" && var.flow_log_bucket_arn == "" ? 1 : 0
-  bucket = "${var.name}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  bucket = lower("${var.prefix}-${var.name}-flow-logs-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}")
 
 
   tags = merge(
@@ -128,7 +128,7 @@ resource "aws_cloudwatch_log_group" "egress_vpc" {
 
 resource "aws_iam_role" "flow_log" {
   count       = var.vpc_flow_logs == "CLOUDWATCH" ? 1 : 0
-  name_prefix = "${var.name}-flow-log-"
+  name_prefix = "${var.prefix}-${var.name}-flow-log-"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
